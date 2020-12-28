@@ -10,6 +10,7 @@ from aiogram.types import ParseMode
 from config import TOKEN
 import requests
 
+
 ####
 
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -18,13 +19,13 @@ from utils import TestStates
 from json import dump, load
 import keyboards as kb
 
-WEATHER_TOKEN = 'e7444caba5c079597539cba7f81adcd8'
-WEATHER_URL = 'http://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={token}'
+HOLIDAY_TOKEN = '2a5b2f8affc54233ed8a933772dee40f'
+QUOTE_URL = 'https://favqs.com/api/qotd'
 
 
 # Создание бота по токену
 bot = Bot(token=TOKEN)
-# dispatcher
+# dispatcherz
 # dp = Dispatcher(bot)
 dp = Dispatcher(bot, storage=MemoryStorage())
 ###############
@@ -83,7 +84,7 @@ async def process_help_command(message: types.Message):
 Доступные команды:
 /start,
 /help,
-/order
+/quote
     """)
 
 
@@ -144,12 +145,27 @@ async def state2(message: types.Message):
     await message.reply('Опрос окончен', reply=False)
     return await state.reset_state()
 
+
+@dp.message_handler(commands=["quote"])
+async def quote(message: types.Message):
+    await message.reply('Узнайте цитату этого дня.', reply_markup=kb.inline_kb2)
+
+@dp.callback_query_handler(lambda c: c.data.startswith('quote'))
+async def inline_kb2(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    data = requests.get(url=QUOTE_URL)
+    print(data.json())
+    quote = data.json()['quote']['body']
+    author = data.json()['quote']['author']
+    await bot.send_message(callback_query.from_user.id, f' {quote} \n  {author} \n Цитата дня!')
+
 # echo
 @dp.message_handler()
 async def echo(message: types.Message):
     msg_text = message.text
     await bot.send_message(message.from_user.id, message.text)
     # print(message)
+
 
 # stickers, photos and other
 @dp.message_handler(content_types=ContentType.ANY)
